@@ -1,1 +1,1 @@
-prueba_controller
+prueba_contr
