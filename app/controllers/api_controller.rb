@@ -1,26 +1,47 @@
 class ApiController < ApplicationController
+	skip_before_filter :verify_authenticity_token
 	access_token = '2019746130.59a3f2b.86a0135240404ed5b908a14c0a2d9402'
-	def tag
+	
+	def getTag
 		tag = params[:tag]
-		if params[:access_token]
-			token = params[:access_token]
-		else
-			token = access_token
-		count = tagCount(tag, access_token)
-		array = arrayPosts(tag, access_token)
-		if(count && array)
-			render json: {
-			metadata: {
-				total: count
-			},
-			posts: array,
-			version: ENV["version_id"]
-		}
-		else
-			render json: {error: "Parametros correctos, pero hubo error en búsqueda. No se pueden recibir tags que tengan menos de 2 resultados"}, status: 400
+		token = params[:access_token]
+		cantidad = getCount(tag,token)
+		post = getPost(tag,token)
+		render json: {
+							metadata: {
+								total: cantidad
+								},
+
+							posts: post,
+							version: "5" 
+							}, status: 200
+	end
+
+	def getCount(tag,token)
+		headers = {}
+		query = Hash.new
+		post = HTTParty.get("https://api.instagram.com/v1/tags/#{tag}?access_token=#{token}")
+		cantidad = post["data"]["media_count"].to_i
+		#render json: {cantidad: cantidad}
+		return cantidad
+	end
+
+	def getPost(tag,token)
+		post = HTTParty.get('https://api.instagram.com/v1/tags/'<<tag.to_s<<'/media/recent'<<'?access_token='<<token.to_s)
+		posts = post["data"]
+		#render json: {post: post}
+		arreglo_aux = []
+		posts.each do |p1|
+			hash = {
+			tags: p1["tags"],
+			username: p1["user"]["username"].to_s,
+			likes: p1["likes"]["count"].to_i,
+			url: p1["images"]["standard_resolution"]["url"].to_s,
+			caption: p1["caption"]["text"].to_s 
+			}
+			arreglo_aux.append(hash)
 		end
-	else
-		render json: {error: "Parametros no están correctos. Deben ser Strings y con nombre 'tag' y 'access_token'"}, status: 400
+		return arreglo_aux
 	end
-	end
+
 end
